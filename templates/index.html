@@ -202,7 +202,6 @@ document.querySelectorAll('.platform-item.selected').forEach(item => {
             const ta = document.getElementById('ck-' + platform);
             if (ta && cookieStr) {
                 ta.value = cookieStr;
-                // 自动勾选对应平台
                 const item = document.querySelector(`.platform-item[data-platform="${platform}"]`);
                 if (item) {
                     item.classList.add('selected');
@@ -210,6 +209,23 @@ document.querySelectorAll('.platform-item.selected').forEach(item => {
                     if (cb) cb.classList.add('active');
                 }
             }
+        }
+    } catch(e) {}
+})();
+
+// 检测运行环境，隐藏不可用的功能
+(async function checkEnv() {
+    try {
+        const r = await fetch('/api/checkenv');
+        const env = await r.json();
+        if (!env.has_browser) {
+            // 服务器环境：隐藏一键登录，提示用手动粘贴
+            document.querySelectorAll('.btn-sm').forEach(btn => btn.style.display = 'none');
+            document.querySelectorAll('.cookie-box .hint').forEach(h => {
+                if (h.textContent.includes('一键登录')) {
+                    h.textContent = '⚠️ 当前为在线演示环境，请手动粘贴 Cookie 使用';
+                }
+            });
         }
     } catch(e) {}
 })();

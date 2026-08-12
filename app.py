@@ -329,8 +329,15 @@ class XiaohongshuCollector:
         except ImportError:
             return [], "未安装 Playwright，请运行: pip install playwright"
         
+        # 检查 Chromium 是否可用（服务器环境无浏览器则跳过）
+        try:
+            sync_playwright().start()
+        except Exception:
+            return [], "当前环境无浏览器（在线演示环境），请本地运行或手动提供小红书数据"
+        
         posts = []
         error_msg = ""
+        _pw = None
         
         try:
             with sync_playwright() as p:
@@ -1006,6 +1013,21 @@ def get_saved_cookies():
     """获取已持久化保存的 cookie"""
     data = _load_saved_cookies()
     return jsonify(data)
+
+
+@app.route("/api/checkenv")
+def check_environment():
+    """检查运行环境（本地 vs 服务器）"""
+    import socket
+    hostname = socket.gethostname()
+    is_local = hostname in ("localhost", "pc") or "render" not in hostname
+    # 检测是否有显示器（能不能跑 Playwright 浏览器）
+    has_display = os.name == "nt" or os.environ.get("DISPLAY")
+    return jsonify({
+        "is_local": has_display,
+        "has_browser": has_display,
+        "hostname": hostname,
+    })
 
 
 if __name__ == "__main__":

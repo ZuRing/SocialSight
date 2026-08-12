@@ -230,7 +230,7 @@ class BilibiliCollector:
         for page in range(1, pages + 1):
             try:
                 params = {"keyword": keyword, "page": page}
-                r = self.session.get(self.SEARCH_URL, params=params, timeout=15)
+                r = self.session.get(self.SEARCH_URL, params=params, timeout=8)
                 data = r.json()
                 if data.get("code") == 0:
                     for section in data.get("data", {}).get("result", []):
@@ -717,6 +717,7 @@ def index():
 
 @app.route("/api/collect", methods=["POST"])
 def api_collect():
+    """安全路由：任何异常都返回 JSON"""
     data = request.get_json()
     keyword = data.get("keyword", "").strip()
     platforms = data.get("platforms", [])
@@ -727,7 +728,7 @@ def api_collect():
     if not platforms:
         return jsonify({"error": "请选择至少一个平台"}), 400
     if not HAS_REQUESTS:
-        return jsonify({"error": "服务器缺少 requests 库，请运行: pip install requests"}), 500
+        return jsonify({"error": "服务器缺少 requests 库"}), 500
     
     all_posts = []
     platform_names = []
@@ -738,50 +739,62 @@ def api_collect():
         platform_names.append("微博")
         wb_cookie = cookies.get("weibo", "")
         if wb_cookie:
-            print(f"[微博] 搜索 '{keyword}'...")
-            collector = WeiboCollector(wb_cookie)
-            posts = collector.search(keyword, 2)
-            print(f"  找到 {len(posts)} 条")
-            all_posts.extend(posts)
+            try:
+                print(f"[微博] 搜索 '{keyword}'...")
+                collector = WeiboCollector(wb_cookie)
+                posts = collector.search(keyword, 2)
+                print(f"  找到 {len(posts)} 条")
+                all_posts.extend(posts)
+            except Exception as e:
+                warnings.append(f"微博：{str(e)[:50]}")
         else:
             warnings.append("微博：未提供 cookie，已跳过")
     
-    # B站
+    # B站（带超时兜底）
     if "bilibili" in platforms:
         platform_names.append("B站")
-        print(f"[B站] 搜索 '{keyword}'...")
-        collector = BilibiliCollector()
-        posts = collector.search(keyword, 2)
-        print(f"  找到 {len(posts)} 条")
-        all_posts.extend(posts)
+        try:
+            print(f"[B站] 搜索 '{keyword}'...")
+            collector = BilibiliCollector()
+            posts = collector.search(keyword, 2)
+            print(f"  找到 {len(posts)} 条")
+            all_posts.extend(posts)
+        except Exception as e:
+            warnings.append(f"B站：{str(e)[:50]}")
     
     # 京东
     if "jd" in platforms:
         platform_names.append("京东")
-        jd_cookie = cookies.get("jd", "")
-        print(f"[京东] 搜索 '{keyword}'...")
-        collector = JDCollector(jd_cookie)
-        products = collector.search_products(keyword)
-        if products:
-            for p in products[:3]:
-                comments = collector.get_comments(p["id"], 2)
-                print(f"  商品 '{p['name'][:20]}': {len(comments)} 条评论")
-                all_posts.extend(comments)
-        else:
-            warnings.append("京东：未找到相关商品")
+        try:
+            jd_cookie = cookies.get("jd", "")
+            print(f"[京东] 搜索 '{keyword}'...")
+            collector = JDCollector(jd_cookie)
+            products = collector.search_products(keyword)
+            if products:
+                for p in products[:3]:
+                    comments = collector.get_comments(p["id"], 2)
+                    print(f"  商品 '{p['name'][:20]}': {len(comments)} 条评论")
+                    all_posts.extend(comments)
+            else:
+                warnings.append("京东：未找到相关商品")
+        except Exception as e:
+            warnings.append(f"京东：{str(e)[:50]}")
     
     # 小红书
     if "xiaohongshu" in platforms:
         platform_names.append("小红书")
         xhs_cookie = cookies.get("xiaohongshu", "")
         if xhs_cookie:
-            print(f"[小红书] 搜索 '{keyword}'...")
-            collector = XiaohongshuCollector(xhs_cookie)
-            posts, xhs_msg = collector.search(keyword, 2)
-            print(f"  找到 {len(posts)} 条 | {xhs_msg}")
-            all_posts.extend(posts)
-            if xhs_msg:
-                warnings.append(f"小红书：{xhs_msg}")
+            try:
+                print(f"[小红书] 搜索 '{keyword}'...")
+                collector = XiaohongshuCollector(xhs_cookie)
+                posts, xhs_msg = collector.search(keyword, 2)
+                print(f"  找到 {len(posts)} 条 | {xhs_msg}")
+                all_posts.extend(posts)
+                if xhs_msg:
+                    warnings.append(f"小红书：{xhs_msg}")
+            except Exception as e:
+                warnings.append(f"小红书：{str(e)[:50]}")
         else:
             warnings.append("小红书：未提供 cookie，已跳过")
     

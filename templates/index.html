@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SocialSight 舆情分析</title>
+<style>
+* {margin:0;padding:0;box-sizing:border-box;}
+body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1a1d23;color:#e4e7eb;min-height:100vh;}
+
+/* 顶部导航 */
+.header {background:#1a1d23;border-bottom:1px solid #2a2d33;padding:0;}
+.header-inner {max-width:960px;margin:0 auto;padding:20px 24px;display:flex;align-items:center;gap:16px;}
+.header-icon {width:36px;height:36px;background:#c04a1a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0;}
+.header h1 {font-size:20px;font-weight:600;color:#f0f2f5;letter-spacing:-0.02em;}
+.header .sub {font-size:13px;color:#8b8f96;margin-left:auto;}
+
+/* 主容器 */
+.container {max-width:960px;margin:0 auto;padding:24px;}
+
+/* 卡片 */
+.card {background:#22252b;border-radius:10px;padding:28px;margin-bottom:20px;border:1px solid #2a2d33;}
+.card h2 {font-size:15px;font-weight:600;color:#c8cbd0;margin-bottom:20px;letter-spacing:0.02em;text-transform:uppercase;}
+
+/* 表单 */
+label {display:block;font-size:13px;font-weight:500;color:#8b8f96;margin-bottom:6px;}
+input[type="text"],textarea {width:100%;padding:10px 14px;background:#1a1d23;border:1px solid #33363d;border-radius:6px;color:#e4e7eb;font-size:14px;font-family:inherit;margin-bottom:16px;transition:border-color 0.2s;}
+input[type="text"]:focus,textarea:focus {outline:none;border-color:#c04a1a;}
+textarea {height:70px;resize:vertical;}
+
+/* 平台选择网格 */
+.platform-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+.platform-item {border:1px solid #33363d;border-radius:8px;padding:16px 12px;text-align:center;cursor:pointer;transition:all 0.2s;background:#1a1d23;}
+.platform-item:hover {border-color:#555;background:#25282e;}
+.platform-item.selected {border-color:#c04a1a;background:#2a1f18;}
+.platform-item .icon {font-size:24px;margin-bottom:6px;color:#c04a1a;}
+.platform-item .name {font-size:13px;font-weight:600;color:#e4e7eb;}
+.platform-item .need {font-size:11px;color:#6b6f76;margin-top:4px;}
+.platform-item.selected .need {color:#c04a1a;}
+
+/* Cookie 输入区 */
+.cookie-box {display:none;background:#1a1d23;border:1px solid #2a2d33;border-radius:8px;padding:16px;margin-bottom:16px;}
+.cookie-box.active {display:block;}
+.cookie-box h4 {font-size:14px;font-weight:500;color:#c8cbd0;margin-bottom:4px;}
+.cookie-box .hint {font-size:12px;color:#6b6f76;margin-bottom:8px;line-height:1.5;}
+
+/* 按钮 */
+.btn {background:#c04a1a;color:#fff;border:none;padding:12px 28px;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;width:100%;transition:background 0.2s;letter-spacing:0.01em;}
+.btn:hover {background:#d55a2a;}
+.btn:disabled {opacity:0.4;cursor:not-allowed;background:#555;}
+.btn-sm {background:transparent;color:#c04a1a;border:1px solid #c04a1a;padding:6px 16px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;margin-top:8px;}
+.btn-sm:hover {background:#c04a1a;color:#fff;}
+
+/* 进度 */
+.progress {display:none;margin-top:24px;text-align:center;}
+.progress.active {display:block;}
+.spinner {width:32px;height:32px;border:3px solid #2a2d33;border-top:3px solid #c04a1a;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+@keyframes spin {to{transform:rotate(360deg)}}
+.progress-text {font-size:14px;color:#8b8f96;}
+
+/* 结果 */
+.result {display:none;margin-top:20px;}
+.result.active {display:block;}
+.result-kpi {display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;}
+.result-kpi .k {background:#1a1d23;border:1px solid #2a2d33;border-radius:8px;padding:16px 24px;text-align:center;flex:1;min-width:80px;}
+.result-kpi .v {font-size:26px;font-weight:700;color:#f0f2f5;}
+.result-kpi .l {font-size:11px;color:#6b6f76;margin-top:2px;text-transform:uppercase;letter-spacing:0.04em;}
+.warning {background:#1f1a14;border:1px solid #c04a1a33;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#c8b090;}
+.warning ul {margin-left:18px;margin-top:4px;}
+.report-link {text-align:center;margin-top:20px;padding:16px;background:#1a1d23;border:1px solid #2a2d33;border-radius:8px;}
+.report-link a {color:#c04a1a;font-weight:600;text-decoration:none;font-size:15px;}
+.report-link a:hover {text-decoration:underline;}
+
+/* 帖子预览 */
+.post-preview {border:1px solid #2a2d33;border-radius:8px;padding:12px;margin-bottom:8px;background:#1a1d23;}
+.post-preview-header {display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;flex-wrap:wrap;}
+.post-preview-text {font-size:14px;color:#c8cbd0;line-height:1.5;}
+.badge {background:#2a2d33;color:#8b8f96;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;}
+.tag {padding:2px 10px;border-radius:10px;font-size:11px;color:#fff;}
+
+/* 页脚 */
+.footer {text-align:center;padding:24px;color:#4a4d53;font-size:12px;border-top:1px solid #2a2d33;margin-top:40px;}
+
+@media (max-width:600px) {
+    .container {padding:16px;}
+    .card {padding:20px;}
+    .platform-grid {grid-template-columns:repeat(2,1fr);}
+    .result-kpi .k {min-width:60px;padding:12px 16px;}
+}
+</style>
+</head>
+<body>
+<div class="header">
+    <div class="header-inner">
+        <div class="header-icon">◈</div>
+        <h1>SocialSight</h1>
+        <div class="sub">社交平台舆情分析</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h2>分析设置</h2>
+        
+        <label for="keyword">搜索关键词</label>
+        <input type="text" id="keyword" placeholder="例如：唯可鲜、某某品牌、某产品" value="唯可鲜">
+        
+        <label>选择数据平台</label>
+        <div class="platform-grid" id="platform-grid">
+            <div class="platform-item selected" data-platform="weibo">
+                <div class="icon">WB</div>
+                <div class="name">微博</div>
+                <div class="need">需登录</div>
+            </div>
+            <div class="platform-item selected" data-platform="xiaohongshu">
+                <div class="icon">XHS</div>
+                <div class="name">小红书</div>
+                <div class="need">需登录</div>
+            </div>
+            <div class="platform-item selected" data-platform="bilibili">
+                <div class="icon">BL</div>
+                <div class="name">B站</div>
+                <div class="need">开放接口</div>
+            </div>
+            <div class="platform-item selected" data-platform="jd">
+                <div class="icon">JD</div>
+                <div class="name">京东</div>
+                <div class="need">无需登录</div>
+            </div>
+        </div>
+        
+        <div class="cookie-box" id="cookie-weibo">
+            <h4>微博登录</h4>
+            <div class="hint">点击"一键登录"，在弹出窗口扫码登录后自动获取 Cookie</div>
+            <textarea id="ck-weibo" placeholder="或手动粘贴微博 cookie..."></textarea>
+            <button class="btn-sm" onclick="loginPlatform('weibo')" id="login-weibo-btn">一键登录微博</button>
+            <span id="login-weibo-status" style="margin-left:10px;font-size:12px;color:#8b8f96;"></span>
+        </div>
+        <div class="cookie-box" id="cookie-xiaohongshu">
+            <h4>小红书登录</h4>
+            <div class="hint">点击"一键登录"，在弹出窗口扫码登录后自动获取 Cookie</div>
+            <textarea id="ck-xiaohongshu" placeholder="或手动粘贴小红书 cookie..."></textarea>
+            <button class="btn-sm" onclick="loginPlatform('xiaohongshu')" id="login-xiaohongshu-btn">一键登录小红书</button>
+            <span id="login-xiaohongshu-status" style="margin-left:10px;font-size:12px;color:#8b8f96;"></span>
+        </div>
+        
+        <button class="btn" id="run-btn" onclick="runAnalysis()">开始分析</button>
+        
+        <div class="progress" id="progress">
+            <div class="spinner"></div>
+            <div class="progress-text" id="progress-text">正在采集数据，请稍候...</div>
+        </div>
+    </div>
+    
+    <div class="card result" id="result">
+        <h2>分析结果</h2>
+        <div class="result-kpi" id="result-kpi"></div>
+        <div class="warning" id="warnings" style="display:none">
+            <strong>提示：</strong>
+            <ul id="warning-list"></ul>
+        </div>
+        <div class="report-link" id="report-link"></div>
+        <div id="posts-preview" style="margin-top:16px;"></div>
+    </div>
+</div>
+
+<div class="footer">SocialSight 舆情分析系统</div>
+
+<script>
+const platformMap = {
+    weibo: '微博',
+    xiaohongshu: '小红书',
+    bilibili: 'B站',
+    jd: '京东'
+};
+
+// 平台选择
+document.querySelectorAll('.platform-item').forEach(item => {
+    item.addEventListener('click', () => {
+        item.classList.toggle('selected');
+        const p = item.dataset.platform;
+        const cookieBox = document.getElementById('cookie-' + p);
+        if (cookieBox) {
+            cookieBox.classList.toggle('active', item.classList.contains('selected'));
+        }
+    });
+});
+
+// 初始化：显示已选平台的cookie
+document.querySelectorAll('.platform-item.selected').forEach(item => {
+    const p = item.dataset.platform;
+    const cb = document.getElementById('cookie-' + p);
+    if (cb) cb.classList.add('active');
+});
+
+// 页面加载时自动填充已保存的 cookie
+(async function loadSavedCookies() {
+    try {
+        const r = await fetch('/api/cookies');
+        const data = await r.json();
+        for (const [platform, cookieStr] of Object.entries(data)) {
+            const ta = document.getElementById('ck-' + platform);
+            if (ta && cookieStr) {
+                ta.value = cookieStr;
+                // 自动勾选对应平台
+                const item = document.querySelector(`.platform-item[data-platform="${platform}"]`);
+                if (item) {
+                    item.classList.add('selected');
+                    const cb = document.getElementById('cookie-' + platform);
+                    if (cb) cb.classList.add('active');
+                }
+            }
+        }
+    } catch(e) {}
+})();
+
+async function runAnalysis() {
+    const keyword = document.getElementById('keyword').value.trim();
+    if (!keyword) { alert('请输入搜索关键词'); return; }
+    
+    const platforms = [];
+    document.querySelectorAll('.platform-item.selected').forEach(item => {
+        platforms.push(item.dataset.platform);
+    });
+    if (platforms.length === 0) { alert('请至少选择一个平台'); return; }
+    
+    const cookies = {
+        weibo: document.getElementById('ck-weibo').value.trim(),
+        xiaohongshu: document.getElementById('ck-xiaohongshu').value.trim()
+    };
+    
+    // UI状态
+    document.getElementById('run-btn').disabled = true;
+    document.getElementById('progress').classList.add('active');
+    document.getElementById('result').classList.remove('active');
+    document.getElementById('progress-text').textContent = '正在采集数据，请稍候（可能需要1-2分钟）...';
+    
+    try {
+        const resp = await fetch('/api/collect', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({keyword, platforms, cookies})
+        });
+        const data = await resp.json();
+        
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+        
+        // 显示警告
+        const wDiv = document.getElementById('warnings');
+        const wList = document.getElementById('warning-list');
+        if (data.warnings && data.warnings.length) {
+            wDiv.style.display = 'block';
+            wList.innerHTML = data.warnings.map(w => `<li>${w}</li>`).join('');
+        } else {
+            wDiv.style.display = 'none';
+        }
+        
+        // 显示KPI
+        const kpi = document.getElementById('result-kpi');
+        kpi.innerHTML = `
+            <div class="k"><div class="v" style="color:#667eea">${data.total}</div><div class="l">总数据</div></div>
+            <div class="k"><div class="v" style="color:#4CAF50">${data.positive}</div><div class="l">正面</div></div>
+            <div class="k"><div class="v" style="color:#F44336">${data.negative}</div><div class="l">负面</div></div>
+            <div class="k"><div class="v" style="color:#9E9E9E">${data.neutral}</div><div class="l">中性</div></div>
+        `;
+        
+        document.getElementById('report-link').innerHTML = 
+            `<a href="/report/${data.report_name}" target="_blank">📄 查看完整分析报告（含图表）</a>`;
+        
+        // 显示帖子预览（含来源链接）
+        const preview = document.getElementById('posts-preview');
+        if (data.posts && data.posts.length) {
+            const colorMap = {'正面':'#4CAF50','负面':'#F44336','中性':'#9E9E9E'};
+            const iconMap = {'正面':'+','负面':'-','中性':'='};
+            preview.innerHTML = '<h3 style="margin-bottom:12px;font-size:14px;color:#c8cbd0;">数据预览</h3>' + data.posts.map(p => {
+                const link = p.url ? `<a href="${p.url}" target="_blank" style="color:#c04a1a;font-size:12px;text-decoration:none;margin-left:auto;">原文</a>` : '';
+                return `<div class="post-preview">
+                    <div class="post-preview-header">
+                        <span class="badge">${p.platform}</span>
+                        <span style="font-weight:500;color:#e4e7eb;">${p.user}</span>
+                        <span class="tag" style="background:${colorMap[p.sentiment]||'#999'}">${iconMap[p.sentiment]||'='} ${p.sentiment}</span>
+                        ${link}
+                    </div>
+                    <div class="post-preview-text">${p.content}</div>
+                </div>`;
+            }).join('');
+        }
+        
+        document.getElementById('result').classList.add('active');
+    } catch (e) {
+        alert('请求失败：' + e.message);
+    } finally {
+        document.getElementById('run-btn').disabled = false;
+        document.getElementById('progress').classList.remove('active');
+    }
+}
+
+// 一键登录功能
+const loginStates = {};
+
+async function loginPlatform(platform) {
+    const btn = document.getElementById('login-' + platform + '-btn');
+    const status = document.getElementById('login-' + platform + '-status');
+    const textarea = document.getElementById('ck-' + platform);
+    
+    btn.disabled = true;
+    status.textContent = '⏳ 正在打开浏览器窗口...';
+    
+    try {
+        const resp = await fetch('/api/login/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({platform})
+        });
+        const data = await resp.json();
+        const sessionId = data.session_id;
+        
+        status.textContent = '🔓 请在弹出的浏览器窗口中登录（如未弹出，请检查任务栏）';
+        
+        // 轮询登录状态
+        const poll = setInterval(async () => {
+            const r = await fetch(`/api/login/status?session_id=${sessionId}&platform=${platform}`);
+            const s = await r.json();
+            
+            if (s.status === 'done') {
+                clearInterval(poll);
+                textarea.value = s.cookies;
+                btn.disabled = false;
+                status.textContent = '✅ 登录成功！Cookie 已自动填入';
+                status.style.color = '#4CAF50';
+            } else if (s.status === 'timeout') {
+                clearInterval(poll);
+                btn.disabled = false;
+                status.textContent = '⏰ 登录超时（10分钟），请重试';
+                status.style.color = '#F44336';
+            } else if (s.status === 'error') {
+                clearInterval(poll);
+                btn.disabled = false;
+                status.textContent = '❌ 登录失败：' + (s.msg || '未知错误');
+                status.style.color = '#F44336';
+            }
+        }, 2000);
+    } catch (e) {
+        btn.disabled = false;
+        status.textContent = '❌ 请求失败：' + e.message;
+        status.style.color = '#F44336';
+    }
+}
+</script>
+</body>
+</html>

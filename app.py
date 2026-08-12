@@ -840,8 +840,11 @@ def view_report(name):
 # 全局错误处理器：500 错误返回 JSON 而不是 HTML
 @app.errorhandler(500)
 def handle_500(e):
+    import traceback
+    error_detail = traceback.format_exc()
     print(f"[错误] 500: {e}")
-    return jsonify({"error": "服务器内部错误，请稍后重试"}), 500
+    print(f"[错误] 堆栈: {error_detail[:500]}")
+    return jsonify({"error": f"服务器内部错误", "detail": str(e)[:200]}), 500
 
 
 # =============================================

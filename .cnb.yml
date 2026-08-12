@@ -1,0 +1,34 @@
+# SocialSight 云原生构建配置
+# 文档: https://docs.cnb.cool/zh/build/intro.html
+
+main:
+  push:
+    - docker:
+        image: python:3.11-slim
+        # pip 缓存加速
+        volumes:
+          - /root/.cache/pip:copy-on-write
+      stages:
+        # 安装系统依赖
+        - apt-get update && apt-get install -y --no-install-recommends curl ffmpeg libgl1 libgomp1
+        # 安装 Python 依赖
+        - pip install --no-cache-dir flask requests playwright pyinstaller
+        # 安装 Playwright 浏览器
+        - playwright install chromium
+        # 构建可执行文件
+        - pyinstaller --name SocialSight --onedir --console \
+            --add-data templates:templates \
+            --hidden-import playwright --hidden-import flask --hidden-import requests \
+            --collect-all playwright --collect-all flask \
+            app.py
+        # 压缩构建产物
+        - tar czf SocialSight.tar.gz -C dist/SocialSight .
+      # 构建产物
+      artifacts:
+        - SocialSight.tar.gz
+
+  # 手动触发构建（在 CNB 页面上手动运行）
+  manual:
+    - stages:
+        - echo "手动构建 SocialSight"
+        - python app.py --version 2>/dev/null || echo "直接运行模式"

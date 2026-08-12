@@ -32,3 +32,14 @@ main:
     - stages:
         - echo "手动构建 SocialSight"
         - python app.py --version 2>/dev/null || echo "直接运行模式"
+
+# 云原生开发环境（在线预览）
+$:
+  vscode:
+    - docker:
+        build: .ide/Dockerfile
+      services:
+        - name: vscode
+          options:
+            onlyPreview: true
+            launch: python app.py

@@ -794,7 +794,10 @@ def api_collect():
         })
     
     # 生成报告
-    html = generate_report(all_posts, keyword, platform_names)
+    try:
+        html = generate_report(all_posts, keyword, platform_names)
+    except Exception as e:
+        return jsonify({"error": f"报告生成失败: {str(e)}"}), 500
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     report_name = f"report_{keyword}_{timestamp}.html"
     # 清理文件名
@@ -823,6 +826,7 @@ def api_collect():
         } for p in all_posts[:5]],
     })
 
+
 @app.route("/report/<name>")
 def view_report(name):
     # 安全检查
@@ -831,6 +835,13 @@ def view_report(name):
     if os.path.exists(path):
         return send_file(path)
     return "报告不存在", 404
+
+
+# 全局错误处理器：500 错误返回 JSON 而不是 HTML
+@app.errorhandler(500)
+def handle_500(e):
+    print(f"[错误] 500: {e}")
+    return jsonify({"error": "服务器内部错误，请稍后重试"}), 500
 
 
 # =============================================
@@ -1020,9 +1031,8 @@ def check_environment():
     """检查运行环境（本地 vs 服务器）"""
     import socket
     hostname = socket.gethostname()
-    is_local = hostname in ("localhost", "pc") or "render" not in hostname
     # 检测是否有显示器（能不能跑 Playwright 浏览器）
-    has_display = os.name == "nt" or os.environ.get("DISPLAY")
+    has_display = bool(os.name == "nt" or os.environ.get("DISPLAY"))
     return jsonify({
         "is_local": has_display,
         "has_browser": has_display,
